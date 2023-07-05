@@ -1,97 +1,119 @@
-# Pandora
-
-潘多拉 (Pandora)，一个让你呼吸顺畅的 ChatGPT。
-
-潘多拉实现了网页版 ChatGPT 的主要操作。后端优化，绕过 Cloudflare，速度喜人。
-
-<!-- PROJECT SHIELDS -->
-
-![Python version](https://img.shields.io/badge/python-%3E%3D3.7-green)
-[![Issues](https://img.shields.io/github/issues-raw/pengzhile/pandora)](https://github.com/pengzhile/pandora/issues)
-[![Commits](https://img.shields.io/github/last-commit/pengzhile/pandora/master)](https://github.com/pengzhile/pandora/commits/master)
-[![PyPi](https://img.shields.io/pypi/v/pandora-chatgpt.svg)](https://pypi.python.org/pypi/pandora-chatgpt)
-[![Downloads](https://static.pepy.tech/badge/pandora-chatgpt)](https://pypi.python.org/pypi/pandora-chatgpt)
-[![PyPi workflow](https://github.com/pengzhile/pandora/actions/workflows/python-publish.yml/badge.svg)](https://github.com/pengzhile/pandora/actions/workflows/python-publish.yml)
-[![Docker workflow](https://github.com/pengzhile/pandora/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/pengzhile/pandora/actions/workflows/docker-publish.yml)
-[![Discord](https://img.shields.io/discord/1098772912242163795?label=Discord)](https://discord.gg/QBkd9JAaWa)
-
-## 体验地址
-* 点击 <a href="https://chat.zhile.io" target="_blank" title="Pandora Cloud体验地址">https://chat.zhile.io</a>
-* 最新拿 `Access Token` 的技术原理，我记录在[这里](https://zhile.io/2023/05/19/how-to-get-chatgpt-access-token-via-pkce.html)了。
-* 可以访问 [这里](http://ai.fakeopen.com/auth) 拿 `Access Token`
-* 也可以官方登录，然后访问 [这里](http://chat.openai.com/api/auth/session) 拿 `Access Token`
-* `Access Token` 有效期 `14` 天，期间访问**不需要梯子**。这意味着你在手机上也可随意使用。
-* 这个页面上还包含一个共享账号的链接，**没有账号**的可以点进去体验一下。
+# 写在最前
+- 思来想去还是搭建一个本地版罢（不然总是要科学上网），刚好可以放我虚拟机里跑，本教程基于[Pengzhile/pandora](https://github.com/pengzhile/pandora) 项目
+- 前置要求：一台搭载了Contos7的虚拟机
  
-## ChatGPT使用时可能会遇到：
 
-### 1. Please stand by, while we are checking your browser... 
-### &nbsp;&nbsp;&nbsp;动不动来一下，有时候还不动或者出人机验证。痛！
-![t0](https://github.com/pengzhile/pandora/raw/master/doc/images/t0.png)
+# 安装Docker
+- 关于Docker的安装和使用，详情可以参考我这篇文章 https://cyborg2077.github.io/2022/12/21/Docker/
 
-### 2. Access denied. Sorry, you have been blocked
-### &nbsp;&nbsp;&nbsp;经典问题，只能到处找可用VPN，费时费力，更费钱。移动端访问更难。痛！
-![t1.1](https://github.com/pengzhile/pandora/raw/master/doc/images/t1.1.png)
+## 卸载(可选)
+ 
+- 如果之前安装过旧版本的Docker，可以使用下面命令卸载
+``` BASH
+yum remove docker \
+                  docker-client \
+                  docker-client-latest \
+                  docker-common \
+                  docker-latest \
+                  docker-latest-logrotate \
+                  docker-logrotate \
+                  docker-selinux \
+                  docker-engine-selinux \
+                  docker-engine \
+                  docker-ce
+```
 
-### 3. ChatGPT is at capacity right now 
-### &nbsp;&nbsp;&nbsp;系统负载高，白嫖用户不给用。痛！
-![t2](https://github.com/pengzhile/pandora/raw/master/doc/images/t2.png)
+## 安装Docker
 
-### 4. This content may violate our <u>content policy</u>. 
-### &nbsp;&nbsp;&nbsp;道德审查，多触发几次可能就封号了。痛！！！
-![t3](https://github.com/pengzhile/pandora/raw/master/doc/images/t3.png)
+- 首先先安装yum工具
+``` BASH
+yum install -y yum-utils \
+           device-mapper-persistent-data \
+           lvm2 --skip-broken
+```
 
-### 5. Something went wrong. 
-### &nbsp;&nbsp;&nbsp;吃着火锅唱着歌，突然就出故障了。痛！
-![t4](https://github.com/pengzhile/pandora/raw/master/doc/images/t4.png)
+- 然后更新本地镜像源
+``` BASH
+# 设置Docker镜像源
+yum-config-manager \
+    --add-repo \
+    https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+    
+sed -i 's/download.docker.com/mirrors.aliyun.com\/docker-ce/g' /etc/yum.repos.d/docker-ce.repo
 
-### 6. 手机和电脑的模型不通用，顾这个就顾不到那个，痛！
-![t7](https://github.com/pengzhile/pandora/raw/master/doc/images/t7.png)
+yum makecache fast
+```
 
-### 7. 蹦字慢吞吞，卡顿不流畅，不知道的甚至想换电脑。痛！
-### 8. 想把 `ChatGPT` 接到其他系统，结果只能接个差强人意的 `gpt-3.5-turbo`。痛！
+- 然后安装社区版Docker
+``` BASH
+yum install -y docker-ce
+```
 
-### _一次看完上面的噩梦，血压上来了，拳头硬了！太痛了！！！以上痛点，`Pandora` 一次全部解决。_
+## 启动Docker
 
-## 界面截图
+- Docker应用需要用到各种端口，挨个修改防火墙设置很麻烦，所以这里建议直接关闭防火墙
+``` BASH
+# 关闭
+systemctl stop firewalld
+# 禁止开机启动防火墙
+systemctl disable firewalld
+```
 
-  <details>
+- 通过命令启动Docker
+``` BASH
+# 启动docker服务（只执行此操作即可）
+systemctl start docker 
 
-  <summary>
+# 停止docker服务（无需执行）
+systemctl stop docker
 
-  ![alt Screenshot5](https://github.com/pengzhile/pandora/raw/master/doc/images/s05.png)<br>
-  ![alt Screenshot10](https://github.com/pengzhile/pandora/raw/master/doc/images/s12.jpeg)
+# 重启docker服务（无需执行）
+systemctl restart docker
+```
 
-  </summary>
+- 然后输入命令，查看docker版本，如果可以看到版本号，则安装成功
+``` BASH
+docker -v
+``` 
 
-  ![alt Screenshot1](https://github.com/pengzhile/pandora/raw/master/doc/images/s01.png)<br>
-  ![alt Screenshot2](https://github.com/pengzhile/pandora/raw/master/doc/images/s02.png)<br>
-  ![alt Screenshot3](https://github.com/pengzhile/pandora/raw/master/doc/images/s03.png)<br>
-  ![alt Screenshot4](https://github.com/pengzhile/pandora/raw/master/doc/images/s04.png)<br>
-  ![alt Screenshot6](https://github.com/pengzhile/pandora/raw/master/doc/images/s06.png)<br>
-  ![alt Screenshot11](https://github.com/pengzhile/pandora/raw/master/doc/images/s11.jpeg)
+- 设置开机自启动
+``` BSAH
+systemctl enable docker
+```
 
-  </details>
 
-## 如何搭建运行
+# 拉取镜像并启动容器
+1. 拉取镜像
+``` BASH
+docker pull pengzhile/pandora
+```
+2. 启动容器，这里的9527可以换为你喜欢的端口（确保它没有被占用），由于docker已经设置为开机自启了，这里再设置 `--restart=always`可以保证该容器随docker启动而启动，从而实现你只需要将虚拟机开机，即可访问chatGPT了
+``` BASH
+docker run -e PANDORA_CLOUD=cloud -e PANDORA_SERVER=0.0.0.0:9527 -p 9527:9527 -d --restart=always pengzhile/pandora
+```
+3. 查看虚拟机ip，在输出结果中，找到带有 inet 地址的行，后面的一串数字就是本机的 IP 地址，例如：`192.168.101.128`
+``` BASH
+ifconfig
+```
+4. 在浏览器中输入`虚拟机ip:9527`，即可看到登录界面，点击最下方`Continue with Access Token`输入token即可登录使用，无需科学上网，定期刷新token即可
+![](https://s1.ax1x.com/2023/06/14/pCnzCWV.png)
+5. 关于token的获取，如果你有正常的openAI账号，访问https://chat.openai.com/api/auth/session 可以拿到token
+    - 另外一种token的获取方式：https://ai.fakeopen.com/auth
 
-* 访问 [doc/wiki.md](https://github.com/pengzhile/pandora/blob/master/doc/wiki.md) 获得详细指导。
+# 其他设备访问
+- 懒是第一生产力，我现在想在手机或者任何我的电子设备上访问ChatGPT，该怎么办呢？开放主机的一个端口供其他设备就好了（当然你的设备需要和主机在同一局域网内）
 
-## 其他说明
+## Windows防火墙设置
+- 控制面板->系统与安全->Windows防火墙->高级设置->入站规则->新建规则
+![](https://s1.ax1x.com/2023/06/20/pC8B6Ve.png)
+- `协议和端口`，选择`TCP`，`特定本地端口`，填写一个你喜欢的端口即可，我这里还是9527
+![](https://s1.ax1x.com/2023/06/20/pC8BRPA.png)
+- 然后一路Next就好了，都用默认的配置，最后的名称你可以起一个你喜欢的名称，我这里是ChatGPT
 
-* `开源项目可以魔改，但请保留原作者信息。确需去除，请联系作者，以免失去技术支持。`
-* 项目是站在其他巨人的肩膀上，感谢！
-* 报错、BUG之类的提出`Issue`，我会修复。
-* 因为之后`ChatGPT`的API变动，我可能不会跟进修复。
-* 喜欢的可以给颗星，都是老朋友了。
-* 不影响`PHP是世界上最好的编程语言！`
-
-## 贡献者们
-
-> 感谢所有让这个项目变得更好的贡献者们！
-
-[![Star History Chart](https://contrib.rocks/image?repo=pengzhile/pandora)](https://github.com/pengzhile/pandora/graphs/contributors)
-
-## Star历史
-
-![Star History Chart](https://api.star-history.com/svg?repos=pengzhile/pandora&type=Date)
+## 虚拟机端口转发
+- 由于虚拟机采用的是NAT联网方式，我们点击菜单->编辑->虚拟网络编辑器->更改设置，选择VMnet8网络
+![](https://s1.ax1x.com/2023/06/20/pC8DPIJ.png)
+- 点击NAT设置添加端口转发规则，主机端口选择我们上一步开放的9527端口，虚拟机地址填写我们Docker容器中ChatGPT的启动端口
+![](https://s1.ax1x.com/2023/06/20/pC8DmqO.png)
+- 最后CMD查看本机ip，其他设备只要跟电脑在同一个局域网内，访问`ip:端口`即可正常使用
+![](https://s1.ax1x.com/2023/06/20/pC8D0ij.jpg)
